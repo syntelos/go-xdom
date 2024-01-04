@@ -10,7 +10,7 @@ XML DOM
 	  String() (string)
 	  Print()
 	  Depth() (uint8)
-	  Append(Node) (Node)
+	  Read(string, []byte) (Node, error)
   }
   type NodeList interface {
 
@@ -39,10 +39,12 @@ Usage
    } else {
 	   defer fil.Close()
 
-	   doc, er = doc.ReadFile(fil)
+           var n Node
+	   n, er = doc.ReadFile(fil)
 	   if nil != er {
 		   t.Fatalf("Reading '%s': %v",filename,er)
 	   } else {
+	   	   doc = n.(Document)
 		   doc.Print()
 	   }
    }

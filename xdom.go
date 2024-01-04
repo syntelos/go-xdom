@@ -5,6 +5,7 @@
 package xdom
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -19,7 +20,7 @@ type Node interface {
 	String() (string)
 	Print()
 	Depth() (uint8)
-	Append(Node) (Node)
+	Read(string, []byte) (Node, error)
 }
 /*
  */
@@ -36,19 +37,21 @@ type AttributeList interface {
 	GetAttribute(uint32) (Node)
 }
 /*
- * Node type.
+ * Node type includes parser states, e.g. element as "open",
+ * "solitary" and "close", and text as "text" and "data".
  */
 type Kind uint8
 const (
 	KindUndefined   Kind = 0
-	KindDeclaration Kind = 1
-	KindInstruction Kind = 2
-	KindDocument    Kind = 3
-	KindOpen        Kind = 4
-	KindSolitary    Kind = 5
-	KindClose       Kind = 6
-	KindText        Kind = 7
-	KindData        Kind = 8
+	KindDocument    Kind = 0b00000001
+	KindAttribute   Kind = 0b00000010
+	KindDeclaration Kind = 0b00000100
+	KindInstruction Kind = 0b00001000
+	KindOpen        Kind = 0b00010000
+	KindSolitary    Kind = 0b00010001
+	KindClose       Kind = 0b00010010
+	KindText        Kind = 0b00100000
+	KindData        Kind = 0b00100001
 )
 
 type Document struct {
@@ -59,7 +62,6 @@ type Document struct {
 
 type Element struct {
 	parent Node
-	kind Kind
 	content Text
 	name string
 	attributes []Attribute
@@ -123,17 +125,6 @@ func (this Document) Depth() (uint8) {
 
 	return 0
 }
-func (this Document) Append(child Node) (Node) {
-
-	this.children = append(this.children,child)
-
-	switch child.KindOf() {
-	case KindOpen:
-		return child
-	default:
-		return this
-	}
-}
 func (this Document) CountChildren() (index uint32) {
 	return uint32(len(this.children))
 }
@@ -145,7 +136,7 @@ func (this Document) GetChild(index uint32) (Node) {
 		return nil
 	}
 }
-func (this Document) ReadFile (src *os.File) (that Document, er error){
+func (this Document) ReadFile (src *os.File) (n Node, er error){
 	var fi os.FileInfo
 	fi, er = src.Stat()
 	if nil != er {
@@ -167,28 +158,20 @@ func (this Document) ReadFile (src *os.File) (that Document, er error){
 		}
 	}
 }
-func (this Document) Read (url string, content []byte) (that Document, er error){
+func (this Document) Read (url string, content []byte) (n Node, er error){
 	this.source = url
 	this.content = content
 	{
 		var x, z int = 0, len(content)
-		var stack Node = this
 		for x < z {
 			var first, last int = x, this.content.read(x)
 			if first < last {
 				var begin, end int = first, (last+1)
 				var text Text = this.content[begin:end]
-				var kind Kind = text.KindOf()
-				switch kind {
-				case KindDeclaration, KindInstruction, KindOpen, KindSolitary, KindClose:
 
-					var elem Element = Element{stack,kind,text,"",nil,nil}.read()
+				if KindUndefined != text.KindOf() {
 
-					stack = stack.Append(elem) // [TODO] BUG (DOM COPY LOSS)
-
-				case KindData:
-					stack = stack.Append(text)
-
+					this.children = append(this.children,text)
 				}
 				x = end
 			} else {
@@ -199,43 +182,11 @@ func (this Document) Read (url string, content []byte) (that Document, er error)
 	return this, nil
 }
 func (this Element) KindOf() (Kind){
-	var x int = 0
-	var z int = len(this.content)
-	if x < z {
-		var y int = (z-1)
-		if x < y {
-			if '<' == this.content[x] && '>' == this.content[y] {
-				x += 1
-				y -= 1
-				if x < y {
-					switch this.content[x] {
-
-					case '?':
-						return KindInstruction
-					case '!':
-						x += 1
-						if x < y {
-							if '[' == this.content[x] {
-								return KindData
-							} else {
-								return KindDeclaration
-							}
-						}
-						
-					case '/':
-						return KindClose
-					default:
-						if '/' == this.content[y] {
-							return KindSolitary
-						} else {
-							return KindOpen
-						}
-					}
-				}
-			}
-		}
+	if nil != this.content {
+		return this.content.KindOf()
+	} else {
+		return KindUndefined
 	}
-	return KindUndefined
 }
 func (this Element) Content() (Text){
 	return this.content
@@ -294,18 +245,57 @@ func (this Element) Depth() (uint8) {
 	}
 	return c
 }
-func (this Element) Append(child Node) (Node) {
+func (this Element) Read(url string, content []byte) (n Node, er error) {
+	this.content = content
 
-	this.children = append(this.children,child)
+	var kind Kind = this.KindOf()
+	var w, x, y, z int = 0, 0, 0, len(content)
 
-	switch child.KindOf() {
+	switch kind {
+	case KindDeclaration:
+		x = 2
+	case KindInstruction:
+		x = 2
 	case KindOpen:
-		return child
+		x = 1
+	case KindSolitary:
+		x = 1
 	case KindClose:
-		return this.parent
-	default:
-		return this
+		x = 2
 	}
+	this.name = this.content.identifier(x)
+
+	switch kind {
+	case KindDeclaration, KindInstruction, KindOpen, KindSolitary:
+
+		x += len(this.name)
+		for x < z {
+			w = this.content.class(x,z,ws)
+			if 0 < w {
+				x = (w+1)
+
+				y = this.content.class(x,z,at)
+				if 0 < y {
+					var at_be, at_en int = x, (y+1)
+					var atx Text = this.content[at_be:at_en]
+
+					var at Attribute
+					n, er = at.Read(url,atx)
+					if nil != er {
+						return this, er
+					} else {
+						this.attributes = append(this.attributes,n.(Attribute))
+						x = at_en
+					}
+				} else {
+					break
+				}
+			} else {
+				break
+			}
+		}
+	}
+	return this,nil
 }
 func (this Element) CountChildren() (index uint32) {
 	return uint32(len(this.children))
@@ -329,60 +319,61 @@ func (this Element) GetAttribute(index uint32) (at Attribute) {
 		return at
 	}
 }
-func (this Element) read() (Element) {
-	var w, x, y, z int = 0, 0, 0, len(this.content)
-
-	switch this.kind {
-	case KindDeclaration:
-		x = 2
-	case KindInstruction:
-		x = 2
-	case KindOpen:
-		x = 1
-	case KindSolitary:
-		x = 1
-	case KindClose:
-		x = 2
+func (this Attribute) KindOf() (Kind) {
+	return KindAttribute
+}
+func (this Attribute) Content() (Text) {
+	return this.content
+}
+func (this Attribute) String() (string) {
+	if "" != this.name {
+		return this.name
+	} else if "" != this.value {
+		return this.value
+	} else {
+		return ""
 	}
-	this.name = this.content.identifier(x)
+}
+func (this Attribute) Print() {
+}
+func (this Attribute) Depth() (uint8) {
+	return 0
+}
+func (this Attribute) Read(url string, content []byte) (n Node, er error) {
+	this.content = content
 
-	switch this.kind {
-	case KindDeclaration, KindInstruction, KindOpen, KindSolitary:
+	var x, z int = 0, len(this.content)
+	if x < z {
+		var y int = (z-1)
+		if '"' == content[x] || '"' == content[y] {
 
-		x += len(this.name)
-		for x < z {
-			w = this.content.class(x,z,ws)
-			if 0 < w {
-				x = (w+1)
-
-				y = this.content.class(x,z,at)
-				if 0 < y {
-					var at_be, at_en int = x, (y+1)
-					var atx Text = this.content[at_be:at_en]
-
-					var at Attribute = Attribute{atx,"",""}
-					this.attributes = append(this.attributes,at.read())
-
-					x = at_en
-
+			if '"' == content[x] && '"' == content[y] {
+				this.value = string(content)
+			} else {
+				return this, errors.New("Attribute quote missing.")
+			}
+		} else {
+			y = this.content.class(x,z,id)
+			if 0 < y {
+				y += 1
+				if y < z {
+					if '=' == this.content[y] {
+						this.name = string(this.content[x:y])
+						this.value = string(this.content[y+1])
+					} else {
+						return this, fmt.Errorf("Attribute syntax of content '%s'.",content)
+					}
 				} else {
-					break
+					this.name = string(content)
 				}
 			} else {
-				break
+				this.value = string(content)
 			}
 		}
+		return this, nil
+	} else {
+		return this, errors.New("Attribute empty.")
 	}
-	return this
-}
-func (this Attribute) read() (Attribute) {
-	var x, z int = 0, len(this.content)
-	var y int = this.content.scan(x,z,'=')
-	if '=' == this.content[y] {
-		this.name = string(this.content[x:y])
-		this.value = string(this.content[y+1])
-	}
-	return this
 }
 func (this Text) KindOf() (Kind){
 	var x int = 0
@@ -418,6 +409,12 @@ func (this Text) KindOf() (Kind){
 						}
 					}
 				}
+			} else {
+				y = this.class(x,z,ws)
+				if (y+1) == z {
+
+					return KindUndefined
+				}
 			}
 		}
 	}
@@ -437,16 +434,16 @@ func (this Text) String() (string) {
 			if '\n' == this[x] {
 				y = x
 				break
-			} else if 10 == x {
-				y = 10
+			} else if 20 == x {
+				y = 20
 				break
 			}
 		}
 		/*
-		 * Clamp to ten
+		 * Clamp to twenty
 		 */
-		if 10 < y {
-			return string(this[0:10])
+		if 20 < y {
+			return string(this[0:20])
 		} else if y < z {
 			return string(this[0:y])
 		} else {
@@ -460,8 +457,10 @@ func (this Text) Print() {
 func (this Text) Depth() (uint8) {
 	return 0
 }
-func (this Text) Append(child Node) (Node) {
-	return this
+func (this Text) Read(url string, content []byte) (n Node, er error) {
+	this = content
+
+	return this,nil
 }
 /*
  * Text span operator.
