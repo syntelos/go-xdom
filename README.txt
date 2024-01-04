@@ -10,12 +10,13 @@ XML DOM
 	  String() (string)
 	  Print()
 	  Depth() (uint8)
+	  Append(Node) (Node)
   }
   /*
-   * Read file into document.
+   * Read document.
    */
-  func (Document) Read(*os.File) (Document, error)
-
+  func (Document) ReadFile (*os.File) (Document, error)
+  func (Document) Read (string, []byte) (Document, error)
 
 Usage
 
@@ -28,7 +29,7 @@ Usage
    } else {
 	   defer fil.Close()
 
-	   doc, er = doc.Read(fil)
+	   doc, er = doc.ReadFile(fil)
 	   if nil != er {
 		   t.Fatalf("Reading '%s': %v",filename,er)
 	   } else {

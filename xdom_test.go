@@ -21,7 +21,7 @@ func TestDocument(t *testing.T){
 	} else {
 		defer fil.Close()
 
-		doc, er = doc.Read(fil)
+		doc, er = doc.ReadFile(fil)
 		if nil != er {
 			t.Fatalf("Reading '%s': %v",tst_text_svg,er)
 		} else {

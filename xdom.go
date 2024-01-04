@@ -120,7 +120,7 @@ func (this Document) Append(child Node) (Node) {
 		return this
 	}
 }
-func (this Document) Read (src *os.File) (that Document, er error){
+func (this Document) ReadFile (src *os.File) (that Document, er error){
 	var fi os.FileInfo
 	fi, er = src.Stat()
 	if nil != er {
@@ -132,41 +132,46 @@ func (this Document) Read (src *os.File) (that Document, er error){
 		ct, er = src.Read(content)
 
 		if nil != er {
-			return this, fmt.Errorf("Read error '%s': %w",fi.Name(),er)
+			return this, fmt.Errorf("ReadFile error '%s': %w",fi.Name(),er)
 		} else if int64(ct) != sz {
-			return this, fmt.Errorf("Read error '%s': expected (%d) found (%d).",fi.Name(),sz,ct)
+			return this, fmt.Errorf("ReadFile error '%s': expected (%d) found (%d).",fi.Name(),sz,ct)
 		} else {
-			this.source = ("file:"+src.Name())
-			this.content = content
-			{
-				var x, z int = 0, ct
-				var stack Node = this
-				for x < z {
-					var first, last int = x, this.content.read(x)
-					if first < last {
-						var begin, end int = first, (last+1)
-						var text Text = this.content[begin:end]
-						var kind Kind = text.KindOf()
-						switch kind {
-						case KindDeclaration, KindInstruction, KindOpen, KindSolitary, KindClose:
+			var url string = "file:"+src.Name()
 
-							var elem Element = Element{stack,kind,text,"",nil,nil}.read()
-
-							stack = stack.Append(elem)
-
-						case KindData:
-							stack = stack.Append(text)
-
-						}
-						x = end
-					} else {
-						x += 1
-					}
-				}
-			}
-			return this, nil
+			return this.Read(url,content)
 		}
 	}
+}
+func (this Document) Read (url string, content []byte) (that Document, er error){
+	this.source = url
+	this.content = content
+	{
+		var x, z int = 0, len(content)
+		var stack Node = this
+		for x < z {
+			var first, last int = x, this.content.read(x)
+			if first < last {
+				var begin, end int = first, (last+1)
+				var text Text = this.content[begin:end]
+				var kind Kind = text.KindOf()
+				switch kind {
+				case KindDeclaration, KindInstruction, KindOpen, KindSolitary, KindClose:
+
+					var elem Element = Element{stack,kind,text,"",nil,nil}.read()
+
+					stack = stack.Append(elem)
+
+				case KindData:
+					stack = stack.Append(text)
+
+				}
+				x = end
+			} else {
+				x += 1
+			}
+		}
+	}
+	return this, nil
 }
 func (this Element) KindOf() (Kind){
 	var x int = 0
