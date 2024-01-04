@@ -159,7 +159,7 @@ func (this Document) Read (url string, content []byte) (that Document, er error)
 
 					var elem Element = Element{stack,kind,text,"",nil,nil}.read()
 
-					stack = stack.Append(elem)
+					stack = stack.Append(elem) // [TODO] BUG (DOM COPY LOSS)
 
 				case KindData:
 					stack = stack.Append(text)
