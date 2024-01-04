@@ -1,1 +1,0 @@
-dlv --init xdom.dlv test
