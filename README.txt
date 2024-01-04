@@ -12,6 +12,16 @@ XML DOM
 	  Depth() (uint8)
 	  Append(Node) (Node)
   }
+  type NodeList interface {
+
+	  CountChildren() (uint32)
+	  GetChild(uint32) (Node)
+  }
+  type AttributeList interface {
+
+	  CountAttributes() (uint32)
+	  GetAttribute(uint32) (Node)
+  }
   /*
    * Read document.
    */

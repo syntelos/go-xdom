@@ -22,6 +22,20 @@ type Node interface {
 	Append(Node) (Node)
 }
 /*
+ */
+type NodeList interface {
+
+	CountChildren() (uint32)
+	GetChild(uint32) (Node)
+}
+/*
+ */
+type AttributeList interface {
+
+	CountAttributes() (uint32)
+	GetAttribute(uint32) (Node)
+}
+/*
  * Node type.
  */
 type Kind uint8
@@ -118,6 +132,17 @@ func (this Document) Append(child Node) (Node) {
 		return child
 	default:
 		return this
+	}
+}
+func (this Document) CountChildren() (index uint32) {
+	return uint32(len(this.children))
+}
+func (this Document) GetChild(index uint32) (Node) {
+	if index < this.CountChildren() {
+
+		return this.children[index]
+	} else {
+		return nil
 	}
 }
 func (this Document) ReadFile (src *os.File) (that Document, er error){
@@ -280,6 +305,28 @@ func (this Element) Append(child Node) (Node) {
 		return this.parent
 	default:
 		return this
+	}
+}
+func (this Element) CountChildren() (index uint32) {
+	return uint32(len(this.children))
+}
+func (this Element) GetChild(index uint32) (ch Node) {
+	if index < this.CountChildren() {
+
+		return this.children[index]
+	} else {
+		return ch
+	}
+}
+func (this Element) CountAttributes() (index uint32) {
+	return uint32(len(this.attributes))
+}
+func (this Element) GetAttribute(index uint32) (at Attribute) {
+	if index < this.CountAttributes() {
+
+		return this.attributes[index]
+	} else {
+		return at
 	}
 }
 func (this Element) read() (Element) {
