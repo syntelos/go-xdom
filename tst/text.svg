@@ -15,5 +15,6 @@
       }
     </style>
   </defs>
-  <text class="title" x="20" y="34">Hello, world.</text>
+  <rect x="0" y="0" width="500" height="500" fill="#FFF" stroke="#000" stroke-width="30" />
+  <text class="title" x="30" y="50">Hello, world.</text>
 </svg>

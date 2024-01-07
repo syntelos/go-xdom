@@ -1,4 +1,4 @@
-XML DOM
+XML DOM for GOPL
 
   /*
    * Principal user interface.
@@ -10,7 +10,7 @@ XML DOM
 	  String() (string)
 	  Print()
 	  Depth() (uint8)
-	  Read(string, []byte) (Node, error)
+	  Read(string, Text) (Node, error)
   }
   type NodeList interface {
 
@@ -27,27 +27,6 @@ XML DOM
    */
   func (Document) ReadFile (*os.File) (Document, error)
   func (Document) Read (string, []byte) (Document, error)
-
-Usage
-
-   var doc Document
-   var fil *os.File
-   var er error
-   fil, er = os.Open(filename)
-   if nil != er {
-	   t.Fatalf("Opening '%s': %v",filename,er)
-   } else {
-	   defer fil.Close()
-
-           var n Node
-	   n, er = doc.ReadFile(fil)
-	   if nil != er {
-		   t.Fatalf("Reading '%s': %v",filename,er)
-	   } else {
-	   	   doc = n.(Document)
-		   doc.Print()
-	   }
-   }
 
 
 References
