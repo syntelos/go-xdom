@@ -389,7 +389,7 @@ func (this Element) Read(url string, content Text) (n Node, er error) {
 						break
 					}
 				} else {
-					y = span.Class(this.content,x,z,span.ID)
+					y = span.Class(this.content,x,z,span.XI)
 					if 0 < y {
 						if '=' == this.content[y] {
 							y += 1
@@ -607,7 +607,7 @@ func (this Attribute) Read(url string, content Text) (n Node, er error) {
 				return this, fmt.Errorf("Attribute quote missing in '%s'.",content)
 			}
 		} else {
-			y = span.Class(this.content,x,z,span.ID)
+			y = span.Class(this.content,x,z,span.XI)
 			if 0 < y {
 				y += 1
 				if y < z {
@@ -722,7 +722,7 @@ func (this Text) Read(url string, content Text) (n Node, er error) {
  */
 func (this Text) identifier(ofs int) (string) {
 	var x, z int = ofs, len(this)
-	var y int = span.Class(this,x,z,span.ID)
+	var y int = span.Class(this,x,z,span.XI)
 	if x <= y && y <= z {
 		return string(this[x:y+1])
 	} else {

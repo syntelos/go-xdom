@@ -1,2 +1,4 @@
 github.com/syntelos/go-span v0.0.0-20240107143935-0b269fdc814b h1:3aVnTkD8EHfTD0xEWmvo87EoBEjY1MzW3cA+QJkgqig=
 github.com/syntelos/go-span v0.0.0-20240107143935-0b269fdc814b/go.mod h1:wAwBb57zSJfbKYELsJzpHMMliE5fyB++zMmHFacTSac=
+github.com/syntelos/go-span v0.0.0-20240208144010-74209b582ba4 h1:S6X10uOWDzalG3ozQrOwRtXLu2169wxS/vKJHrbNG0I=
+github.com/syntelos/go-span v0.0.0-20240208144010-74209b582ba4/go.mod h1:b2UDYQOI/3QARGubR1WiekWjA6vHZgkuW30wsVRAH6Y=
